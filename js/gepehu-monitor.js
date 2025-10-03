@@ -1,4 +1,7 @@
 /* TODO
+ * - editing url should refresh viz
+ * - add quick links buttons for last day/week/month
+ * - improve wheel unzoom on the borders to remain on the border
  * - add some cron data backup
  * - optimize more by moving also csv parsing to worker
  * - find better ways to handle hoverProcesses
@@ -281,7 +284,11 @@ new Vue({
       this.gpus.forEach(gpu => {
         this.gpusToDo.push(gpu.id)
         fetch("data/" + gpu.id + ".csv.gz?" + (new Date().getTime()))
-        .then(res => res.arrayBuffer())
+        .then(response => {
+          if (!response.ok)
+            throw new Error('Could not query data for GPU', gpu.id, response);
+          return response.arrayBuffer();
+        })
         .then(body =>
           // Decompress gzipped data
           uncompress(body, res => {
@@ -323,7 +330,11 @@ new Vue({
             gpu.name = gpu.rows[0].gpu_name;
             this.gpusDone.push(gpu.id);
           })
-        );
+        )
+        .catch(error => {
+          this.gpusToDo = this.gpusToDo.filter(x => x !== gpu.id);
+          console.log(error);
+        });
       });
     },
     // Post process data when all GPUs' metrics collected
