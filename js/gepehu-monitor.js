@@ -547,14 +547,14 @@ new Vue({
               );
 
             g.append("path")
-              .datum(data)
+              .datum(d3.timeMinutes(this.start, this.end))
               .attr("class", "area")
               .attr("fill", metric.color)
               .attr("fill-opacity", 0.35)
               .attr("d", d3.area()
-                .x(d => this.xScale(d.datetime))
+                .x(d => this.xScale(d))
                 .y0((height))
-                .y1(d => yScale(d[metricChoice]))
+                .y1(d => yScale((gpu.rowsMap[d3.minutize(d)] || {})[metricChoice] || 0))
               );
           }
 
