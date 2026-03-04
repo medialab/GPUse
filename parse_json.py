@@ -37,7 +37,7 @@ def parse(filename):
             "processes": "§".join([" ".join(p["full_command"]) for p in gpu["processes"]])
         }
 
-        csvfilename = os.path.join("data", "%s.csv" % gpu["uuid"])
+        csvfilename = os.path.join("data", "%s_%s.csv" % (gpu["uuid"], row["datetime"][:7]))
 
         if not os.path.exists(csvfilename):
             with open(csvfilename, "w") as f:

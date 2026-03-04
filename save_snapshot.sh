@@ -24,9 +24,10 @@ pyenv activate gpuview
 
 # Run stats collection + parsing + csv.gz dump
 JSONFILE=data/json/$(date +%Y%m%d%H%M%S).json
+MONTH=$(date +%Y-%m)
 gpustat -a --json > $JSONFILE
 if test -s $JSONFILE; then
-  find data -name *.csv.gz | while read f; do
+  find data -name "*_${MONTH}.csv.gz" | while read f; do
     gunzip -k $f
   done
   python parse_json.py $JSONFILE
