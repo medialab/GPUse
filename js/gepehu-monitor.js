@@ -184,8 +184,9 @@ new Vue({
       window.location.hash = this.url;
 
     // Download list of GPUs IDs and prepare data structure
-    d3.text("data/list").then(listGPUs => {
-      listGPUs.trim().split("\n").forEach((gpuID, idx) => {
+    d3.json("data/list.json").then(metas => {
+      this.fullStart = metas.start;
+      metas.gpus.forEach((gpuID, idx) => {
         this.gpus.push({
           id: gpuID,
           index: idx,

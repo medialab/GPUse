@@ -48,10 +48,13 @@ def parse(filename):
             writer = csv.writer(f)
             writer.writerow([row[h] for h in HEADERS])
 
-    listfile = os.path.join("data", "list")
+    listfile = os.path.join("data", "list.json")
     if not os.path.exists(listfile):
-        with open(os.path.join("data", "list"), "w") as f:
-            f.write("\n".join(listgpus))
+        with open(listfile, "w") as f:
+            json.dump({
+                "gpus": listgpus,
+                "start": data["query_time"]
+            }, f)
 
 
 if __name__ == "__main__":
