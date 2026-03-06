@@ -20,7 +20,7 @@ export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"
 eval "$(pyenv virtualenv-init -)"
-pyenv activate gpuview
+pyenv activate gpuse
 
 # Run stats collection + parsing + csv.gz dump
 JSONFILE=data/json/$(date +%Y%m%d%H%M%S).json

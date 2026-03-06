@@ -3,10 +3,9 @@
  * - add quick links buttons for last day/week/month
  * - improve wheel unzoom on the borders to remain on the border
  * - add some cron data backup
- * - optimize more by moving also csv parsing to worker
- * - find better ways to handle hoverProcesses
+ * - find better ways to explore hoverProcesses
  * - add help modal with links to sourcecode etc
- * - make README
+ * - add gif video example to README
 */
 d3.formatDefaultLocale({
   "decimal": ",",
