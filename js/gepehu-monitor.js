@@ -7,7 +7,6 @@
  * - find better ways to handle hoverProcesses
  * - add help modal with links to sourcecode etc
  * - make README
- * - split CSVs by month
 */
 d3.formatDefaultLocale({
   "decimal": ",",
@@ -131,6 +130,7 @@ new Vue({
     gpus: [],
     gpusToDo: [],
     gpusDone: [],
+    monthsDone: {},
     aggregateGPUs: true,
     metrics: [
       {id: "usage_percent",     selected: false, name: "GPU use",      unit: "%",  color: "deepskyblue"},
@@ -175,7 +175,15 @@ new Vue({
     // Update URL's hash according to settings and refresh plots
     url: function(val) {
       window.location.hash = val;
-      this.draw();
+      let curMonth = d3.formatMonth(d3.timeMonth(this.fullEnd)),
+        monthsToDo = [d3.timeMonth(this.minDate || this.fullStart)]
+        .concat(d3.timeMonths(this.minDate || this.fullStart, this.maxDate || this.fullEnd))
+        .map(d3.formatMonth)
+        .filter(m => !this.monthsDone[m] || (!this.maxDate && m === curMonth));
+      if (monthsToDo.length) {
+        this.loading = 0.3;
+        this.downloadData();
+      } else this.draw();
     },
     // Run post processing of data whenever a download run is complete
     gpusDone: function(val) {
@@ -273,17 +281,19 @@ new Vue({
     },
     // Download individual GPUs metrics data
     downloadData: function() {
-      let monthsToDo = [d3.timeMonth(this.minDate || this.fullStart)]
+      this.fullEnd = new Date();
+      let curMonth = d3.formatMonth(d3.timeMonth(this.fullEnd)),
+        monthsToDo = [d3.timeMonth(this.minDate || this.fullStart)]
         .concat(d3.timeMonths(this.minDate || this.fullStart, this.maxDate || this.fullEnd))
-        .map(d3.formatMonth),
-        curMonth = d3.formatMonth(d3.timeMonth(this.fullEnd));
+        .map(d3.formatMonth)
+        .filter(m => !this.monthsDone[m] || (!this.maxDate && m === curMonth));
 
       // Do not refresh data if current zooming action
       if (this.brushing != null) return;
 
-      if (!this.loading) this.reloading = true;
+      if (!this.loading && monthsToDo.length) this.reloading = true;
 
-      if (!this.loading && !this.maxDate) this.loading = 0.2;
+      if (!this.loading && !this.maxDate && monthsToDo.length) this.loading = 0.2;
 
       // Cleanup preexisting data
       if (this.gpusToDo.length) {
@@ -291,7 +301,6 @@ new Vue({
         while (this.gpusToDo.pop()) {};
       }
       while (this.gpusDone.pop()) {};
-      this.processes = {};
 
       monthsToDo.forEach(month => {
         this.gpus.forEach(gpu => {
@@ -327,10 +336,11 @@ new Vue({
                 d.n_processes = row_processes.length;
                 row_processes.forEach((p, i) => {
                   if (!this.processes[d.minute])
-                    this.processes[d.minute] = [];
-                  this.processes[d.minute].push({
+                    this.processes[d.minute] = {};
+                  if (!this.processes[d.minute][gpu.index])
+                    this.processes[d.minute][gpu.index] = [];
+                  this.processes[d.minute][gpu.index].push({
                     gpu: d.gpu_name,
-                    gpu_index: gpu.index,
                     gpu_color: gpu.color,
                     user: d.users[i],
                     command: p
@@ -349,6 +359,7 @@ new Vue({
             console.log(error);
           });
         });
+        this.monthsDone[month] = true;
       });
     },
     // Post process data when all GPUs' metrics collected
@@ -375,17 +386,16 @@ new Vue({
       }, aggregatedData => {
         this.aggregatedGPU = aggregatedData;
         // Always draw plots on first load or refresh them if required
-        this.draw(1 - this.loading);
+        this.draw();
       });
     },
     // Refresh plots if required
-    draw: function(lazy) {
+    draw: function() {
       // Do nothing if post-processing never happened yet
       if (!Object.keys(this.usersColors).length) return this.reloading = false;
       // Do not refresh plots with latest data if zoomed in the past
-      if (this.maxDate && lazy) return this.reloading = false;
       if (!this.loading) this.loading = 0.5;
-      setTimeout(this.reallyDraw, 50);
+      setTimeout(this.reallyDraw, 100);
     },
     // Actually draw plots
     reallyDraw: function() {
@@ -687,7 +697,10 @@ new Vue({
           value: (row ? d3[(percent ? "percent" : "int") + "Format"](row[metricChoice]) + (percent ? "" : " " + metric.unit) : "n/a")
         });
       });
-      this.hoverProcesses = (this.processes[minute] || []).filter(p => ~this.gpusChoices.indexOf(p.gpu_index)).sort((a, b) => a.gpu.localeCompare(b.gpu));
+
+      let hoverProcesses = [];
+      this.gpusChoices.forEach(gpu_idx => hoverProcesses = hoverProcesses.concat((this.processes[minute] || {})[gpu_idx] || []));
+      this.hoverProcesses = hoverProcesses.sort((a, b) => a.gpu.localeCompare(b.gpu));
 
       const boxHeight = 45 + 21 * this.metricsChoices.length;
       d3.select(".tooltipBox")
