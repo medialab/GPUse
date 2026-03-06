@@ -334,11 +334,10 @@ new Vue({
                 // Keep maps of processes and metrics at each timestamp
                 const row_processes = d.processes.replace(/\//g, "/&#8203;").split("§").filter(x => x);
                 d.n_processes = row_processes.length;
+                if (!this.processes[d.minute])
+                  this.processes[d.minute] = {};
+                this.processes[d.minute][gpu.index] = [];
                 row_processes.forEach((p, i) => {
-                  if (!this.processes[d.minute])
-                    this.processes[d.minute] = {};
-                  if (!this.processes[d.minute][gpu.index])
-                    this.processes[d.minute][gpu.index] = [];
                   this.processes[d.minute][gpu.index].push({
                     gpu: d.gpu_name,
                     gpu_color: gpu.color,
