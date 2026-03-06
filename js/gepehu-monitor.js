@@ -87,7 +87,7 @@ function buildAggregatedData(gpus, callback) {
       const {gpus, users, minutes, combinations} = evt.data;
       const aggregatedGPU = {};
       const sum = arr => arr.reduce((partial, next) => partial + next, 0);
-      const mean = arr => sum(arr) / arr.length;
+      const mean = arr => sum(arr) / gpus.length;
       const minutize = d => d.toLocaleString('sv').replace(' ', 'T').slice(0, 16);
       // Build aggregated data for all combinations of selected GPUs
       combinations.forEach(combo => {
