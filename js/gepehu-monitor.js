@@ -93,12 +93,12 @@ function buildAggregatedData(gpus, callback) {
       // Build aggregated data for all combinations of selected GPUs
       combinations.forEach(combo => {
         const comboKey = combo.join(",");
-        aggregatedGPU[comboKey] = {rows: [], rowsMap: []};
+        aggregatedGPU[comboKey] = {rows: {}};
         minutes.forEach(dat => {
           const minute = minutize(dat);
           const values = combo
-            .filter(idx => gpus[idx].rowsMap[minute] !== undefined)
-            .map(idx => gpus[idx].rowsMap[minute]);
+            .filter(idx => gpus[idx].rows[minute] !== undefined)
+            .map(idx => gpus[idx].rows[minute]);
           if (!values.length) return;
           row = {
             datetime: dat,
@@ -114,8 +114,7 @@ function buildAggregatedData(gpus, callback) {
           users.forEach(user =>
             row["processes_by_" + user] = sum(values.map(x => x["processes_by_" + user]))
           );
-          aggregatedGPU[comboKey].rows.push(row);
-          aggregatedGPU[comboKey].rowsMap[row.minute] = row;
+          aggregatedGPU[comboKey].rows[row.minute] = row;
         });
       });
       self.postMessage(aggregatedGPU);
@@ -201,8 +200,7 @@ new Vue({
           name: null,
           selected: false,
           color: d3.defaultColors[idx],
-          rows: [],
-          rowsMap: {}
+          rows: {}
         });
       });
 
@@ -300,15 +298,16 @@ new Vue({
           this.gpusToDo.push(gpu.id + "/" + month);
           fetch("data/" + gpu.id + "_" + month + ".csv.gz?" + (month === curMonth ? new Date().getTime() : ""))
           .then(response => {
-            if (!response.ok) {
+            if (!response.ok)
               console.log('WARNING: Could not query data for GPU', gpu.id, response);
-            }
             return response.arrayBuffer();
           })
           .then(body =>
             // Decompress gzipped data
             uncompress(body, res => {
-              gpu.rows = d3.csvParse(res, d => {
+              d3.csvParse(res, d => {
+                if (!gpu.name)
+                  gpu.name = d.gpu_name;
                 d.datetime = new Date(d.datetime);
                 d.minute = d3.minutize(d.datetime);
                 d.usage_percent = +d.usage_percent / 100;
@@ -337,13 +336,11 @@ new Vue({
                     command: p
                   });
                 });
-                gpu.rowsMap[d.minute] = d;
+                gpu.rows[d.minute] = d;
   
                 return d;
               });
   
-              if (gpu.rows.length && !gpu.name)
-                gpu.name = gpu.rows[0].gpu_name;
               this.gpusDone.push(gpu.id + "/" + month);
             })
           )
@@ -363,7 +360,7 @@ new Vue({
       );
 
       this.gpus.forEach(gpu =>
-        gpu.rows.forEach(row =>
+        Object.values(gpu.rows).forEach(row =>
           this.users.forEach(user =>
             row["processes_by_" + user] = row.users.filter(u => u === user).length
           )
@@ -468,6 +465,7 @@ new Vue({
         calEnd = new Date(this.fullEnd);
       calStart.setDate(calStart.getDate() + 1);
       calEnd.setDate(calEnd.getDate() - 1);
+
       calendar.append("g")
         .attr("class", "calendar-axis")
         .attr("transform", "translate(0, 28)")
@@ -499,7 +497,8 @@ new Vue({
         .on("dblclick", this.resetZoom);
 
       // Prepare datasets to plot
-      const datasets = []
+      const datasets = [],
+        timeRange = d3.timeMinutes(this.start, this.end);
       if (this.aggregateGPUs && this.gpusChoices.length > 1)
         datasets.push(this.aggregatedGPU[this.gpusChoices.join(",")]);
       else this.gpusChoices.forEach(idx => datasets.push(this.gpus[idx]));
@@ -512,16 +511,13 @@ new Vue({
         // Compute Y range
         let yMax = 1;
         if (!~metricChoice.indexOf("_percent")) datasets.forEach(gpu =>
-          yMax = d3.max([yMax, d3.max(gpu.rows.map(d => d[metricChoice]))])
+          yMax = d3.max([yMax, d3.max(Object.values(gpu.rows).map(d => d[metricChoice]))])
         );
         yMax *= 1.08;
         const yScale = d3.scaleLinear().range([height, 0]).domain([0, yMax]);
 
         // Plot each GPU as a column
         datasets.forEach((gpu, gpu_idx) => {
-          // Filter zoomed out data
-          const data = gpu.rows.filter(d => d.datetime >= this.start && d.datetime <= this.end);
-
           // Create SVG group for current plot and position it in the whole SVG
           const g = svg.append("g")
             .attr("transform", "translate(" + (margin.left + gpu_idx * (this.width + margin.horiz)) + "," + (margin.top + metric_idx * (height + margin.vert)) + ")");
@@ -533,8 +529,8 @@ new Vue({
               .data(d3.stack()
                 .order(d3.stackOrderAscending)
                 .keys(this.users.map(u => "processes_by_" + u))
-                .value((d, key) => d[key])
-                (data)
+                .value((d, key) => d[key] || 0)
+                (timeRange.map(d => gpu.rows[d3.minutize(d)] || {datetime: d}))
               ).enter().append("path")
                 .attr("fill", d => this.usersColors[d.key.replace(/processes_by_/, "")])
                 .attr("d", d3.area()
@@ -547,25 +543,25 @@ new Vue({
           } else {
 
             g.append("path")
-              .datum(d3.timeMinutes(this.start, this.end))
+              .datum(timeRange)
               .attr("class", "line")
               .attr("fill", "none")
               .attr("stroke", metric.color)
               .attr("stroke-width", 0.5)
               .attr("d", d3.line()
                 .x(d => this.xScale(d))
-                .y(d => yScale((gpu.rowsMap[d3.minutize(d)] || {})[metricChoice] || 0))
+                .y(d => yScale((gpu.rows[d3.minutize(d)] || {})[metricChoice] || 0))
               );
 
             g.append("path")
-              .datum(d3.timeMinutes(this.start, this.end))
+              .datum(timeRange)
               .attr("class", "area")
               .attr("fill", metric.color)
               .attr("fill-opacity", 0.35)
               .attr("d", d3.area()
                 .x(d => this.xScale(d))
                 .y0((height))
-                .y1(d => yScale((gpu.rowsMap[d3.minutize(d)] || {})[metricChoice] || 0))
+                .y1(d => yScale((gpu.rows[d3.minutize(d)] || {})[metricChoice] || 0))
               );
           }
 
@@ -678,7 +674,7 @@ new Vue({
       // Display tooltip
       const dat = this.xScale.invert(brushX),
         minute = d3.minutize(dat),
-        row = (this.aggregateGPUs && this.gpusChoices.length > 1 ? this.aggregatedGPU[this.gpusChoices.join(",")] : this.gpus[this.gpusChoices[gpu_idx]]).rowsMap[minute];
+        row = (this.aggregateGPUs && this.gpusChoices.length > 1 ? this.aggregatedGPU[this.gpusChoices.join(",")] : this.gpus[this.gpusChoices[gpu_idx]]).rows[minute];
 
       this.hoverDate = d3.timeFormat("%b %d %Y %H:%M")(dat);
       this.hoverText = [];
