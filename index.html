@@ -12,7 +12,7 @@
  <body>
   <div id="dashboard"><v-app dark toolbar>
     <aside class="navigation-drawer navigation-drawer--absolute navigation-drawer--clipped navigation-drawer--is-booted navigation-drawer--is-mobile navigation-drawer--open navigation-drawer--permanent">
-      <v-list>
+      <v-list class="borderbottom">
         <v-subheader class="mt-2">GPU<span class="lower">s</span></v-subheader>
 
         <v-list-tile
@@ -56,7 +56,7 @@
         </v-list-tile>
       </v-list>
 
-      <v-list>
+      <v-list class="borderbottom">
         <v-subheader class="mt-2">Metrics</v-subheader>
         <v-list-tile
           v-for="item in metrics"

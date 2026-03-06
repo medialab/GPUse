@@ -70,6 +70,9 @@ aside {
 .unchecked {
   opacity: 0.3;
 }
+.borderbottom {
+  border-bottom: 1px solid #555;
+}
 .processes {
   display: flex;
   flex-direction: column;
