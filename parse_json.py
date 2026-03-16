@@ -33,8 +33,8 @@ def parse(filename):
             "energy": gpu["power.draw"],
             "temperature": gpu["temperature.gpu"],
             "fan_speed": gpu["fan.speed"],
-            "users": "§".join([p["username"] for p in gpu["processes"]]),
-            "processes": "§".join([" ".join(p["full_command"]) for p in gpu["processes"]])
+            "users": "§".join([p["username"] for p in gpu["processes"] or []]),
+            "processes": "§".join([" ".join(p["full_command"]) for p in gpu["processes"] or []])
         }
 
         csvfilename = os.path.join("data", "%s_%s.csv" % (gpu["uuid"], row["datetime"][:7]))

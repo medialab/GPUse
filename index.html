@@ -13,7 +13,7 @@
   <div id="dashboard"><v-app dark toolbar>
     <aside class="navigation-drawer navigation-drawer--absolute navigation-drawer--clipped navigation-drawer--is-booted navigation-drawer--is-mobile navigation-drawer--open navigation-drawer--permanent">
       <v-list class="borderbottom">
-        <v-subheader class="mt-2">GPU<span class="lower">s</span></v-subheader>
+        <v-subheader class="mt-2">GPU<span class="lower" v-if="gpus.length > 1">s</span></v-subheader>
 
         <v-list-tile
           v-for="(item, index) in gpus"
@@ -37,7 +37,7 @@
           </v-list-tile-action>
         </v-list-tile>
 
-        <v-list-tile class="switchoption">
+        <v-list-tile class="switchoption" v-if="gpus.length > 1">
           <v-list-tile-content>
             <v-list-tile-title
               :class="{'switcher': gpusChoices.length > 1 && aggregateGPUs, 'value': true, 'unchecked': aggregateGPUs}"

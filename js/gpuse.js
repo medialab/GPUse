@@ -68,7 +68,7 @@ function useWebWorker(script, inputData, callback) {
 function uncompress(compressed, callback) {
   useWebWorker(`
     let rootUrl = "${window.location.href}".replace(/#.*$/, "");
-    importScripts(rootUrl + "/js/pako.min.js");
+    importScripts(rootUrl + "js/pako.min.js");
     self.onmessage = async (evt) => {
       const file = evt.data;
       try {
@@ -123,6 +123,7 @@ function buildAggregatedData(gpus, callback) {
 new Vue({
   el: "#dashboard",
   data: {
+    ready: false,
     loading: 1,
     reloading: false,
     resizing: false,
@@ -376,21 +377,26 @@ new Vue({
         )
       );
 
-      buildAggregatedData({
+      if (this.gpus.length > 1) buildAggregatedData({
         gpus: this.gpus,
         users: this.users,
         minutes: d3.timeMinutes(this.fullStart, this.fullEnd),
         combinations: d3.allCombinations(this.gpus.map(g => g.index)),
       }, aggregatedData => {
         this.aggregatedGPU = aggregatedData;
+        this.ready = true;
         // Always draw plots on first load or refresh them if required
         this.draw();
       });
+      else {
+        this.ready = true;
+        this.draw();
+      }
     },
     // Refresh plots if required
     draw: function() {
       // Do nothing if post-processing never happened yet
-      if (!Object.keys(this.usersColors).length) return this.reloading = false;
+      if (!this.ready) return this.reloading = false;
       // Do not refresh plots with latest data if zoomed in the past
       if (!this.loading) this.loading = 0.5;
       setTimeout(this.reallyDraw, 100);
