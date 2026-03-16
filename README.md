@@ -15,7 +15,8 @@ cd GPUse
 - Create a dedicated Python environment using pyenv (simple install using [pyenv-installer](https://github.com/pyenv/pyenv-installer?tab=readme-ov-file#pyenv-installer)) and install the `gpustat` dependency within:
 
 ```bash
-pyenv virtualenv 3.12
+pyenv install 3.12
+pyenv virtualenv 3.12 gpuse
 pyenv activate gpuse
 pip install -r requirements.txt
 pyenv deactivate
@@ -25,7 +26,7 @@ pyenv deactivate
 
 ```
 # m h  dom mon dow   command
-  * *   *   *   *    bash <ABSOLUTE PATH TO YOUR INSTALL DIRECTORY>/save_snapshot.sh
+  * *   *   *   *    <ABSOLUTE PATH TO YOUR INSTALL DIRECTORY>/save_snapshot.sh
 ```
 
 - Serve the directory on the web with Nginx or Apache, or for quick tests with:

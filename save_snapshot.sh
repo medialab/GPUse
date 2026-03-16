@@ -3,6 +3,10 @@
 # Stop script if any command fails
 set -eo pipefail
 
+# Prepare directories
+cd $(dirname $0)
+mkdir -p data/json
+
 # Do not run script twice in parallel if it takes too much time
 LOCK=$(dirname $0)/data/gpu-monitor.lock
 if [ -e "$LOCK" ]; then
@@ -10,10 +14,6 @@ if [ -e "$LOCK" ]; then
   exit 1
 fi
 touch $LOCK
-
-# Prepare directories
-cd $(dirname $0)
-mkdir -p data/json
 
 # Enable python environment
 export PYENV_ROOT="$HOME/.pyenv"
