@@ -257,6 +257,8 @@ new Vue({
         else if (key == "metrics" && values != "")
           values.split(",").forEach(v => this.toggleMetric(v, true));
       });
+      if (this.fullStart && this.minDate && this.minDate < this.fullStart)
+        this.minDate = d3.deminutize(this.fullStart.toISOString().slice(0, 16));
       this.aggregateGPUs = aggregate;
     },
     // Redraw plots when window resized
@@ -485,16 +487,17 @@ new Vue({
         .attr("transform", "translate(0, 28)")
         .call(d3.axisTop(this.calendarScale)
           .tickFormat(d3.timeFormat("%d %b %y"))
-          .tickValues(d3.unixDay.every(Math.round(
+          .tickValues(d3.unixDay.every(Math.max(1, Math.round(
             (d3.unixDay.range(this.fullStart, this.fullEnd).length + 1) / (Math.trunc(this.calendarWidth / 120) - 1)
-          )).range(calStart, calEnd))
+          ))).range(calStart, calEnd))
         );
 
+      let leftX = Math.max(0, this.calendarScale(this.start));
       calendar.append("rect")
         .attr("class", "calendar-brush")
-        .attr("x", this.calendarScale(this.start))
+        .attr("x", leftX)
         .attr("y", 1)
-        .attr("width", this.calendarScale(this.end) - this.calendarScale(this.start))
+        .attr("width", this.calendarScale(this.end) - leftX)
         .attr("height", 30);
 
       calendar.append("rect")
