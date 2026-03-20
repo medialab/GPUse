@@ -18,6 +18,12 @@ HEADERS = [
 ]
 
 def parse(filename):
+    indices = {}
+    listfile = os.path.join("data", "list.json")
+    if os.path.exists(listfile):
+        with open(listfile, "r") as f:
+            indices = {gpu: idx for (idx, gpu) in enumerate(json.load(f)["gpus"])}
+
     with open(filename) as f:
         data = json.load(f)
 
@@ -26,7 +32,7 @@ def parse(filename):
         listgpus.append(gpu["uuid"])
         row = {
             "datetime": data["query_time"],
-            "gpu_name": "%s #%s" % (gpu["name"], gpu["index"]),
+            "gpu_name": "%s #%s" % (gpu["name"], indices[gpu["uuid"]] or gpu["index"]),
             "usage_percent": gpu["utilization.gpu"],
             "memory": gpu["memory.used"],
             "memory_percent": round(100 * gpu["memory.used"] / gpu["memory.total"], 3),
